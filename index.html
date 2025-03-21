@@ -1,0 +1,658 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Astro Miner: Galaxy Quest</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: "Poppins", sans-serif;
+            background: #000 url('https://i.imgur.com/S9v51ny.gif') no-repeat center center;
+            background-size: cover;
+            color: #fff;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            height: 100vh;
+            overflow-y: auto; /* Kaydırılabilir ekran */
+        }
+        #loadingScreen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0a0a0a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 100;
+        }
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #fff;
+            border-top: 5px solid #00ff00;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .content {
+            padding: 20px;
+        }
+        .content h3 {
+            font-family: "Poppins", sans-serif;
+            font-size: 24px;
+            margin-bottom: 20px;
+            font-weight: 600;
+        }
+        .wallet-section {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .wallet-section .header {
+            font-family: "Poppins", sans-serif;
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            line-height: 1.2;
+            color: #fff;
+            margin-bottom: 20px;
+        }
+        .wallet-section .connect-button {
+            font-family: "Poppins", sans-serif;
+            padding: 12px 24px;
+            background-color: #fff;
+            color: #000;
+            border: none;
+            border-radius: 25px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            transition: transform 0.2s;
+        }
+        .wallet-section .connect-button:hover {
+            transform: scale(1.05);
+        }
+        .wallet-section .points-value {
+            font-family: "Poppins", sans-serif;
+            background-color: #333;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 14px;
+            align-self: flex-end;
+            margin-bottom: 20px;
+        }
+        .wallet-section .wallet-content {
+            width: 90%;
+            padding: 15px;
+            background-color: #fff;
+            color: #000;
+            border-radius: 15px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        .wallet-section .wallet-content p {
+            margin: 0;
+            font-size: 16px;
+            font-family: "Poppins", sans-serif;
+        }
+        .planet-section {
+            background-color: #fff;
+            color: #000;
+            font-family: "Poppins", sans-serif;
+            padding: 15px;
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+            margin-bottom: 10px;
+            width: 100%;
+            height: 150px;
+        }
+        .planet-section .info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .planet-section .info img {
+            width: 40px;
+            height: 40px;
+        }
+        .planet-section .action button {
+            font-family: "Poppins", sans-serif;
+            padding: 10px 20px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .planet-section .action button:hover {
+            transform: scale(1.05);
+        }
+        #game-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+        }
+        #game-area {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #pixel-galaxy {
+            width: 500px;
+            height: 500px;
+            background: url('https://i.pinimg.com/originals/5b/5e/5f/5b5e5f5d5e5f5e5f5e5f5e5f5e5f5e5f.png') no-repeat center center;
+            background-size: contain;
+            cursor: pointer;
+        }
+        #pixel-galaxy.spinning {
+            animation: rotate 5s linear infinite;
+        }
+        @keyframes rotate {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        #game-score {
+            font-family: "Poppins", sans-serif;
+            margin: 10px 0;
+            font-size: 20px;
+        }
+        #timer {
+            font-family: "Poppins", sans-serif;
+            margin: 10px 0;
+            font-size: 16px;
+        }
+        #close-game {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: none;
+            border: none;
+            color: #fff;
+            font-size: 24px;
+            cursor: pointer;
+        }
+        #play-again {
+            font-family: "Poppins", sans-serif;
+            padding: 12px 24px;
+            background-color: #fff;
+            color: #000;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 10px;
+            display: none;
+            transition: transform 0.2s;
+        }
+        #play-again:hover {
+            transform: scale(1.05);
+        }
+        .task-item {
+            background-color: #fff;
+            color: #000;
+            font-family: "Poppins", sans-serif;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        .task-item.completed {
+            background-color: #ccc;
+        }
+        .task-item button {
+            font-family: "Poppins", sans-serif;
+            padding: 8px 16px;
+            background-color: #00ff00;
+            color: #000;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .task-item.completed button {
+            background-color: #666;
+            cursor: not-allowed;
+        }
+        .referral-section {
+            background-color: #fff;
+            color: #000;
+            font-family: "Poppins", sans-serif;
+            padding: 15px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+        }
+        .referral-section p {
+            margin: 0 0 10px;
+            font-size: 14px;
+        }
+        .referral-section button {
+            font-family: "Poppins", sans-serif;
+            padding: 10px 20px;
+            background-color: #000;
+            color: #fff;
+            border: none;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .referral-section button:hover {
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div id="loadingScreen">
+        <div class="spinner"></div>
+        <p>Loading...</p>
+    </div>
+
+    <div class="content">
+        <!-- Galaxy Map -->
+        <h3>Galaxy Map</h3>
+        <div class="planet-section">
+            <div class="info">
+                <img src="https://cdn-icons-png.flaticon.com/512/124/124560.png" alt="Mars">
+                <div>
+                    <span>Mars Kanyonu</span>
+                    <p id="energy-display">Energy: 50</p>
+                </div>
+            </div>
+            <div class="action">
+                <button onclick="openGame('mars')">Explore</button>
+            </div>
+        </div>
+        <div class="planet-section">
+            <div class="info">
+                <img src="https://cdn-icons-png.flaticon.com/512/124/124574.png" alt="Neptün">
+                <div>
+                    <span>Neptün Bulutsusu</span>
+                    <p>Locked (Complete Mars)</p>
+                </div>
+            </div>
+            <div class="action">
+                <button disabled>Explore</button>
+            </div>
+        </div>
+
+        <!-- Wallet Section -->
+        <div class="wallet-section">
+            <div class="points-value">$0</div>
+            <div class="header">
+                Get real crypto.<br>Earn and buy any tokens.
+            </div>
+            <button class="connect-button" onclick="connectWallet()">Connect wallet</button>
+            <div class="wallet-content">
+                <p>Total Glax: <span id="total-glax">0</span></p>
+            </div>
+        </div>
+
+        <!-- Tasks Section -->
+        <h3>Tasks & Quests</h3>
+        <div class="task-item" id="task-1">
+            <div class="info">
+                <span>Explore Mars Kanyonu</span>
+            </div>
+            <button onclick="completeTask('task-1')">Claim Reward</button>
+        </div>
+        <div class="task-item" id="task-2">
+            <div class="info">
+                <span>Invite a friend</span>
+            </div>
+            <button onclick="completeTask('task-2')">Claim Reward</button>
+        </div>
+
+        <!-- Frens Section -->
+        <h3>Frens</h3>
+        <div class="referral-section">
+            <p>Invite friends and earn bonus Glax!</p>
+            <button onclick="shareReferral()">Share Referral Link</button>
+        </div>
+    </div>
+
+    <div id="game-overlay">
+        <button id="close-game" onclick="closeGame()">✖</button>
+        <h3 id="planet-name">Spinning the Galaxy...</h3>
+        <p>Hold the galaxy to spin and earn Glax!</p>
+        <div id="game-area">
+            <div id="pixel-galaxy"></div>
+        </div>
+        <p id="game-score">Glax: 0</p>
+        <p id="timer">Time Left: 30s</p>
+        <button id="play-again" onclick="resetGame()">Play Again</button>
+    </div>
+
+    <script>
+        let energy = 50;
+        let totalGlax = 0;
+        let referralCount = 0;
+        let hasExploredMars = false;
+        let gameActive = false;
+        let currentPlanet = '';
+        let glaxEarned = 0;
+        let timeLeft = 30;
+        let lastPlayed = localStorage.getItem("lastPlayed") || 0;
+        const COOLDOWN = 8 * 60 * 60 * 1000; // 8 saat (milisaniye cinsinden)
+
+        // DOM Elemanları
+        const loadingScreen = document.getElementById("loadingScreen");
+        const energyDisplay = document.getElementById("energy-display");
+        const gameOverlay = document.getElementById("game-overlay");
+        const gameArea = document.getElementById("game-area");
+        const pixelGalaxy = document.getElementById("pixel-galaxy");
+        const gameScoreDisplay = document.getElementById("game-score");
+        const timerDisplay = document.getElementById("timer");
+        const playAgainButton = document.getElementById("play-again");
+        const totalGlaxDisplay = document.getElementById("total-glax");
+        const planetNameDisplay = document.getElementById("planet-name");
+
+        // Eleman Kontrolü
+        function checkElements() {
+            console.log("Elemanlar kontrol ediliyor...");
+            const elements = {
+                loadingScreen, energyDisplay, gameOverlay, gameArea,
+                pixelGalaxy, gameScoreDisplay, timerDisplay, playAgainButton,
+                totalGlaxDisplay, planetNameDisplay
+            };
+            Object.entries(elements).forEach(([key, value]) => {
+                if (!value) {
+                    console.error(`${key} elemanı bulunamadı!`);
+                } else {
+                    console.log(`${key} elemanı bulundu.`);
+                }
+            });
+            return Object.values(elements).every(el => el !== null);
+        }
+
+        function initializeApp() {
+            console.log("Uygulama başlatılıyor...");
+            if (!checkElements()) {
+                console.error("Bazı elemanlar eksik, uygulama başlatılamıyor!");
+                return;
+            }
+            loadGameData();
+            checkDailyLogin();
+            updateDisplay();
+            loadingScreen.style.display = "none";
+            console.log("Yükleme ekranı kapatıldı.");
+        }
+
+        function connectWallet() {
+            console.log("Cüzdan bağlanıyor... (TON Connect geçici olarak devre dışı)");
+        }
+
+        function checkCooldown() {
+            console.log("Bekleme süresi kontrol ediliyor...");
+            const now = Date.now();
+            const timeSinceLastPlayed = now - lastPlayed;
+            console.log(`Son oynama zamanı: ${lastPlayed}, Şu anki zaman: ${now}, Geçen süre: ${timeSinceLastPlayed}ms`);
+            if (timeSinceLastPlayed < COOLDOWN) {
+                const remainingTime = COOLDOWN - timeSinceLastPlayed;
+                const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+                const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+                console.log(`Mini oyunu tekrar oynamak için ${hours} saat ${minutes} dakika beklemelisin!`);
+                return false;
+            }
+            console.log("Bekleme süresi dolmuş, oyun oynanabilir.");
+            return true;
+        }
+
+        function openGame(planet) {
+            console.log(`Gezegen keşfediliyor: ${planet}`);
+            if (!gameOverlay || !gameArea || !pixelGalaxy || !gameScoreDisplay || !timerDisplay || !playAgainButton) {
+                console.error("Oyun elemanları eksik!");
+                return;
+            }
+
+            if (energy < 10) {
+                console.warn("Yeterli enerji yok! En az 10 enerji gerekli.");
+                return;
+            }
+
+            if (!checkCooldown()) {
+                const now = Date.now();
+                const remainingTime = COOLDOWN - (now - lastPlayed);
+                const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+                const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+                console.log(`Mini oyunu tekrar oynamak için ${hours} saat ${minutes} dakika beklemelisin!`);
+                return;
+            }
+
+            currentPlanet = planet;
+            planetNameDisplay.textContent = `Spinning the Galaxy in ${planet === 'mars' ? 'Mars Kanyonu' : 'Neptün Bulutsusu'}`;
+            energy -= 10; // Her oyun 10 enerji harcar
+            hasExploredMars = true;
+            updateDisplay();
+            console.log("Oyun overlay açılıyor...");
+            gameOverlay.style.display = "flex";
+            startGame();
+        }
+
+        function closeGame() {
+            console.log("Oyun kapatılıyor...");
+            clearInterval(gameInterval);
+            clearInterval(rewardInterval);
+            gameOverlay.style.display = "none";
+            playAgainButton.style.display = "none";
+            gameActive = false;
+            pixelGalaxy.classList.remove("spinning");
+            pixelGalaxy.removeEventListener("mousedown", startSpinning);
+            pixelGalaxy.removeEventListener("mouseup", stopSpinning);
+            pixelGalaxy.removeEventListener("touchstart", startSpinning);
+            pixelGalaxy.removeEventListener("touchend", stopSpinning);
+
+            totalGlax += glaxEarned;
+            lastPlayed = Date.now();
+            localStorage.setItem("lastPlayed", lastPlayed);
+            saveGameData();
+            updateDisplay();
+
+            glaxEarned = 0;
+            gameScoreDisplay.textContent = `Glax: ${glaxEarned.toFixed(1)}`;
+        }
+
+        let gameInterval, rewardInterval;
+        function startGame() {
+            console.log("Oyun başlatılıyor...");
+            if (!gameArea || !pixelGalaxy) {
+                console.error("Oyun alanı veya galaksi eksik!");
+                return;
+            }
+            glaxEarned = 0; // Mini oyun her başladığında Glax 0'dan başlar
+            timeLeft = 30;
+            gameScoreDisplay.textContent = `Glax: ${glaxEarned.toFixed(1)}`;
+            timerDisplay.textContent = `Time Left: ${timeLeft}s`;
+            playAgainButton.style.display = "none";
+            gameActive = true;
+
+            // Fare ve dokunmatik olaylarını ekle
+            pixelGalaxy.addEventListener("mousedown", startSpinning);
+            pixelGalaxy.addEventListener("mouseup", stopSpinning);
+            pixelGalaxy.addEventListener("touchstart", startSpinning);
+            pixelGalaxy.addEventListener("touchend", stopSpinning);
+
+            gameInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `Time Left: ${timeLeft}s`;
+                if (timeLeft <= 0) {
+                    closeGame();
+                }
+            }, 1000);
+        }
+
+        function startSpinning() {
+            if (!gameActive) return;
+            console.log("Galaksi dönmeye başladı!");
+            pixelGalaxy.classList.add("spinning");
+            rewardInterval = setInterval(() => {
+                glaxEarned += 0.1;
+                gameScoreDisplay.textContent = `Glax: ${glaxEarned.toFixed(1)}`;
+                console.log(`Glax kazanıldı: ${glaxEarned.toFixed(1)}`);
+            }, 1000);
+        }
+
+        function stopSpinning() {
+            if (!gameActive) return;
+            console.log("Galaksi dönmesi durduruldu.");
+            pixelGalaxy.classList.remove("spinning");
+            clearInterval(rewardInterval);
+        }
+
+        function resetGame() {
+            console.log("Oyun sıfırlanıyor...");
+            if (energy < 10) {
+                console.warn("Yeterli enerji yok! En az 10 enerji gerekli.");
+                return;
+            }
+            if (!checkCooldown()) {
+                const now = Date.now();
+                const remainingTime = COOLDOWN - (now - lastPlayed);
+                const hours = Math.floor(remainingTime / (1000 * 60 * 60));
+                const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
+                console.log(`Mini oyunu tekrar oynamak için ${hours} saat ${minutes} dakika beklemelisin!`);
+                return;
+            }
+            energy -= 10;
+            updateDisplay();
+            playAgainButton.style.display = "none";
+            startGame();
+        }
+
+        function checkDailyLogin() {
+            console.log("Günlük giriş kontrol ediliyor...");
+            const userId = 'guest';
+            const lastLogin = localStorage.getItem(`lastLogin_${userId}`);
+            const today = new Date().toISOString().split('T')[0];
+            let loginStreak = parseInt(localStorage.getItem(`loginStreak_${userId}`)) || 0;
+            let lastLoginDate = localStorage.getItem(`lastLoginDate_${userId}`);
+
+            const lastDate = lastLoginDate ? new Date(lastLoginDate) : new Date();
+            const currentDate = new Date(today);
+            const diffDays = Math.floor((currentDate - lastDate) / (1000 * 60 * 60 * 24));
+
+            if (diffDays > 1) {
+                loginStreak = 0;
+            }
+
+            if (lastLogin !== today) {
+                loginStreak++;
+                localStorage.setItem(`lastLogin_${userId}`, today);
+                localStorage.setItem(`lastLoginDate_${userId}`, today);
+                localStorage.setItem(`loginStreak_${userId}`, loginStreak);
+
+                let energyToAdd = loginStreak >= 4 ? 20 : 10;
+                energy += energyToAdd;
+                if (energy > 100) energy = 100;
+                console.log(`Günlük giriş ödülü: ${energyToAdd} enerji eklendi. Yeni enerji: ${energy}`);
+                updateDisplay();
+            } else {
+                console.log("Bugün zaten giriş yapılmış.");
+            }
+        }
+
+        function completeTask(taskId) {
+            console.log(`Görev tamamlanıyor: ${taskId}`);
+            const taskElement = document.getElementById(taskId);
+            if (taskElement.classList.contains('completed')) {
+                console.log("Bu görev zaten tamamlandı!");
+                return;
+            }
+            if (taskId === 'task-1' && !hasExploredMars) {
+                console.log("Lütfen önce Mars Kanyonu'nu keşfedin.");
+                return;
+            }
+            if (taskId === 'task-2' && referralCount === 0) {
+                console.log("Lütfen önce bir arkadaş davet edin.");
+                return;
+            }
+            taskElement.classList.add('completed');
+            taskElement.querySelector('button').textContent = "Completed";
+            console.log("Görev tamamlandı! 50 Glax kazandın!");
+            totalGlax += 50; // Görev ödülü
+            saveGameData();
+            updateDisplay();
+        }
+
+        function shareReferral() {
+            console.log("Referans linki paylaşılıyor...");
+            const userId = 'guest';
+            const referralLink = `https://t.me/astro_miner_bot?start=${userId}`;
+            navigator.clipboard.writeText(referralLink).then(() => {
+                console.log("Referans linkin kopyalandı! Arkadaşlarınla paylaş ve ödül kazan!");
+            }).catch(() => {
+                console.log("Link kopyalanamadı, manuel olarak paylaş: " + referralLink);
+            });
+            referralCount++;
+            totalGlax += 10; // Davet ödülü
+            updateDisplay();
+        }
+
+        function updateDisplay() {
+            console.log("Ekran güncelleniyor...");
+            energyDisplay.textContent = `Energy: ${energy}`;
+            totalGlaxDisplay.textContent = totalGlax.toFixed(1);
+            console.log("Ekran güncellendi:", { energy, referralCount, totalGlax });
+        }
+
+        function saveGameData() {
+            console.log("Oyun verileri kaydediliyor...");
+            localStorage.setItem("totalGlax", totalGlax);
+            localStorage.setItem("energy", energy);
+            console.log("Veriler kaydedildi:", { totalGlax, energy });
+        }
+
+        function loadGameData() {
+            console.log("Oyun verileri yükleniyor...");
+            totalGlax = parseFloat(localStorage.getItem("totalGlax")) || 0;
+            energy = parseInt(localStorage.getItem("energy")) || 50; // Başlangıç enerjisi 50
+            lastPlayed = parseInt(localStorage.getItem("lastPlayed")) || 0;
+            updateDisplay();
+            console.log("Veriler yüklendi:", { totalGlax, energy, lastPlayed });
+        }
+
+        console.log("Sayfa yüklendi, uygulamayı başlatıyorum...");
+        initializeApp();
+    </script>
+</body>
+</html>
